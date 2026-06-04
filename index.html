@@ -1,0 +1,89 @@
+﻿<!--
+    This file is part of Privateer.
+
+    Privateer is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Privateer is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Privateer.  If not, see <http://www.gnu.org/licenses/>.
+
+	Download source at https://github.com/nivs1978/Privateer
+	-->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#1c2a3a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Privateer">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="icon" href="favicon.png">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+    </style>
+    <script type="text/javascript" src="qbasicplayer.js"></script>
+    <script type="text/javascript" src="globals.js"></script>
+    <script type="text/javascript" src="lang.js"></script>
+    <script type="text/javascript" src="resources_da.js"></script>
+    <script type="text/javascript" src="resources_en.js"></script>
+    <script type="text/javascript" src="cgafont.js"></script>
+    <script type="text/javascript" src="help.js"></script>
+    <script type="text/javascript" src="harbor.js"></script>
+    <script type="text/javascript" src="city.js"></script>
+    <script type="text/javascript" src="board.js"></script>
+    <script type="text/javascript" src="shoot.js"></script>
+    <script type="text/javascript" src="promote.js"></script>
+    <script type="text/javascript" src="enemy.js"></script>
+    <script type="text/javascript" src="mist.js"></script>
+    <script type="text/javascript" src="attack.js"></script>
+    <script type="text/javascript" src="kaper.js"></script>
+    <script type="text/javascript" src="player.js"></script>
+    <script type="text/javascript" src="map.js"></script>
+</head>
+<body>
+<!-- Game is launched in the globals.js after all images have been loaded.-->
+<script>
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            return Promise.all(
+                registrations.map(function (registration) {
+                    return registration.unregister();
+                })
+            );
+        }).catch(function (error) {
+            console.error("Service worker cleanup failed:", error);
+        });
+
+        if ("caches" in window) {
+            caches.keys().then(function (cacheNames) {
+                return Promise.all(
+                    cacheNames.map(function (cacheName) {
+                        return caches.delete(cacheName);
+                    })
+                );
+            }).catch(function (error) {
+                console.error("Cache storage cleanup failed:", error);
+            });
+        }
+    });
+}
+</script>
+</body>
+</html>

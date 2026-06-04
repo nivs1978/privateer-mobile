@@ -1,0 +1,154 @@
+/*
+    This file is part of Privateer.
+
+    Privateer is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Privateer is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Privateer.  If not, see <http://www.gnu.org/licenses/>.
+*/
+/**
+ * <p>
+ * Controls the help menu
+ * <p>
+ * 
+ * @(#)help.java   v1.20 08/04/10
+ * 
+ * @author: Rune P. Olsen
+ * @version: 1.20 of April the 10th 2008
+ * @see: This version is meant as a tribute to P. O. Frederiksen (http:/www.kaptajnkaper.dk)
+ *
+ * Ported to Javascript by Hans Milling
+ */
+
+/**
+ * Constructor
+ */
+function help(k)
+{
+    this.applet = k;
+    this.font = k.getCGAFont();
+
+    this.currentMenu; // 0-9 normal menus, 10 main menu
+    this.currentPage; // 1 is first page, 2 is second page etc.
+
+    /**
+ * Reset help menu
+ */
+    this.resetMenu = function () {
+        this.currentMenu = 10;
+        this.currentPage = 1;
+    }
+
+    this.hasHelpPage = function(menuNo, pageNo)
+    {
+        var firstLine = this.font.getResourceAsString("HelpMenu" + menuNo + "_" + pageNo + "_1");
+        return typeof firstLine === "string" && firstLine.length > 0;
+    }
+
+       
+    this.resetMenu();
+
+    /**
+     * Fake paint method called from Applet.paint
+     */
+    this.paint = function(g)
+    {
+        this.font.setCurrentMode(cgafont.modes.CGA_MODE1);
+
+        // Show help text depending on which page is chosen
+        if (this.currentMenu == 10) // Show main menu page
+        {
+            for (var i = 0; i < 15; i++)
+            {
+                try
+                {
+                    // Show text line if it exist
+                    g.drawImage(this.font.getResource("HelpMain" + (i + 1)), 0, i * 16);
+                }
+                catch (ex) {}
+            }
+        }
+        else if (this.currentMenu == 4 && (this.currentPage == 2 || this.currentPage == 4 || this.currentPage == 6 || this.currentPage == 8))
+        {
+            // Show hardcoded shooting image for help menu 4
+            g.drawImage(img_shoot_help, 9, 0); 
+            g.drawImage(this.font.getResource("Continue"), 11, 0);
+        }
+        else // Show all other pages
+        {
+            var pageEnd = false; // 2 empty text lines in a row means end-of-page
+            for (var i = 0; i < 25; i++)
+            {
+                try
+                {
+                    // Show text line if it exist
+                    g.drawImage(this.font.getResource("HelpMenu" + this.currentMenu + "_" + this.currentPage + "_" + (i + 1)), 0, i * 16);
+                    this.pageEnd = false; // Text line fount
+                }
+                catch (ex)
+                {
+                    if (this.pageEnd) // 2 empty text lines in a row means end-of-page
+                    {
+                        g.drawImage(this.font.getResource("Continue"), 0, i * 16);
+                        break;
+                    }
+                    else // First empty text line found
+                        this.pageEnd = true;
+                }
+            }
+        }
+    }
+    
+    /**
+     * Controls keyboard character events
+     */
+    this.keyEvent = function(c)
+    {
+        var key = c;
+        if (typeof key === "number")
+            key = String.fromCharCode(key);
+
+        // Change menu if number pressed and on main page
+        if (this.currentMenu == 10 && key >= "0" && key <= "9")
+        {
+            // Convert selected menu digit to number.
+            this.currentMenu = parseInt(key, 10);
+        }
+        // Go back to game if character pressed and on main page
+        else if (this.currentMenu == 10)
+        {
+            this.resetMenu();
+            
+            // Check if help menu originally initiated from map or from city
+            var mapValue = this.applet.getMap().getCurrentMapDataValue();
+            if (mapValue > 1 && mapValue < 9)
+                this.applet.setCurrentAction(kaper.actionType.CITY);
+            else
+                this.applet.setCurrentAction(kaper.actionType.MAP); 
+        }
+        // Change page if character pressed and not on main page
+        else if (this.currentMenu != 10)
+        {
+            // Help menu 4 has image-only pages between text pages.
+            var hasNextPage = this.hasHelpPage(this.currentMenu, this.currentPage + 1) ||
+                              this.hasHelpPage(this.currentMenu, this.currentPage + 2);
+            
+            // Show next help page on this menu (if it exist)
+            if (hasNextPage)
+                this.currentPage += 1;
+            else
+                this.resetMenu();
+        }
+    }
+    
+    // ------------------- Methods in this game object not specified by interface -------------------
+
+}
