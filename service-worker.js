@@ -56,22 +56,16 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(event.request)
-        .then((networkResponse) => {
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== "basic") {
-            return networkResponse;
-          }
-
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, responseClone));
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== "basic") {
           return networkResponse;
-        })
-        .catch(() => caches.match("index.html"));
-    })
+        }
+
+        const responseClone = networkResponse.clone();
+        caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, responseClone));
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("index.html")))
   );
 });
