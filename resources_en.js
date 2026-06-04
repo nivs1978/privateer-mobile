@@ -49,9 +49,6 @@ lang["en"] = {
         // MAP screen strings
         Map1: "Point: {0} ",
         Map2: " Goal: {0} in {1} moves",
-        Map3: "F1:Help",
-        Map4: "F2:Sound",
-        Map5: "Esc:Quit",
         Map6: "Move: {0}",
         Map7: "Taels: {0}",
         Map8: "Grain: {0}",

@@ -293,7 +293,7 @@ function kaper()
         this.osimg.style.marginLeft = 0;
         this.osimg.style.marginRight = 0;
         this.osimg.style.display = "block";
-        this.osimg.style.width = "90vw";
+        this.osimg.style.width = "min(100vw, calc(100dvh * 1.6))";
         this.osimg.style.height = "auto";
         this.osimg.style.touchAction = "manipulation";
 

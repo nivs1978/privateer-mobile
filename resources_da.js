@@ -48,9 +48,6 @@ lang["da"] = {
     // MAP screen strings
     Map1: "Point: {0} ",
     Map2: " Mål: {0} på {1} træk",
-    Map3: "F1:Hjælp",
-    Map4: "F2:Lyd",
-    Map5: "Esc:Slut",
     Map6: "Træk:  {0}",
     Map7: "Rgsdl: {0}",
     Map8: "Korn: {0}",

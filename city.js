@@ -60,11 +60,6 @@ function city(k)
         g.drawImage(this.font.getResource("Map1", this.currentPlayer.getScore()), 41, 0);
         g.drawImage(this.font.getResource("Map2", this.currentPlayer.getScoreToNextPromotion(), this.currentPlayer.getMaxMovesBeforeNextPromotion()), 249, 0);
 
-        // Show help keys
-        g.drawImage(this.font.getResource("Map3"), 41, 304); // F1
-        g.drawImage(this.font.getResource("Map4"), 265, 304); // F2
-        g.drawImage(this.font.getResource("Map5"), 473, 304); // F3
-
         // Show information at bottom of screen
         g.drawImage(this.font.getResource("Map6", this.currentPlayer.getMoves()), 25, 336);
         g.drawImage(this.font.getResource("Map7", this.currentPlayer.getMoney()), 217, 336);
