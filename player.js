@@ -51,7 +51,7 @@ function player(k)
         this.moves = 0;
         this.difficulty = 0;
         this.posX = 10;
-        this.posY = 10;
+        this.posY = 13;
 
         this.money = 600;
         this.cannons = 20;

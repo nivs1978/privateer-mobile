@@ -66,20 +66,26 @@ function promote(k)
             moreLines = 48;
         }
 
-        g.drawImage(this.font.getResource("Continue"), 0, 128 + moreLines);
     }
     
     /**
      * Controls keyboard character events
      */
-    this.keyEvent = function(c) // All key events ends the promotion
+    this.keyEvent = function(c)
+    {
+        // Promotion continue is pointer-only.
+    }
+
+    this.pointerEvent = function()
     {
         // Go back to map
-    this.applet.setCurrentAction(kaper.actionType.MAP);
+        this.applet.setCurrentAction(kaper.actionType.MAP);
         
         // Check if game won (player just got the highest promotion)
-    if (this.currentPlayer.getDifficulty() == 10)
-        this.applet.setCurrentStep(kaper.stepType.HIGHSCORE);
+        if (this.currentPlayer.getDifficulty() == 10)
+            this.applet.setCurrentStep(kaper.stepType.HIGHSCORE);
+
+        return true;
     }
 
 }

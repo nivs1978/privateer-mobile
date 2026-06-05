@@ -55,6 +55,8 @@ function shoot(k, e, a)
 
     this.shotSide = 0; // Horizontal of shoot
     this.shotElevation = 0; // Elevation of shoot (vertical) 
+    this.shootButtonMargin = 8;
+    this.shootButtonSpacing = 8;
 
     /**
      * Fake paint method called from Applet.paint
@@ -70,25 +72,29 @@ function shoot(k, e, a)
         g.drawImage(this.font.getResource("Shooting2"), 41, 144);
         g.drawImage(this.font.getResource("Shooting3"), 441, 176);
         g.drawImage(this.font.getResource("Shooting4"), 41, 224);
-        if (this.currentState == shoot.stateType.SHOOTING)
-            g.drawImage(this.font.getResource("Shooting5"), 265, 240);
-        else
+        if (this.currentState != shoot.stateType.SHOOTING)
             g.drawImage(this.font.getResource("Shooting11"), 265, 240);
         g.drawImage(this.font.getResource("Shooting6", this.enemyDistance), 25, 272);
-        g.drawImage(this.font.getResource("Shooting2"), 281, 272);
-        g.drawImage(this.font.getResource("Shooting1"), 473, 272);
+        g.drawImage(this.font.getResource("Shooting2"), 224, 272);
+        g.drawImage(this.font.getResource("Shooting1"), 320, 272);
         g.drawImage(this.font.getResource("Shooting7"), 25, 304);
         g.drawImage(this.font.getString(this.windStrength), 57, 320);
         g.drawImage(this.font.getResource("Shooting8"), 121, 304);
         g.drawImage(this.font.getResource("Shooting9"), 121, 336);
         g.drawImage(this.font.getResource("Shooting10"), 121, 368);
-        g.drawImage(this.font.getString(this.currentPlayer.getCannons()), 265, 304);
-        g.drawImage(this.font.getString(this.currentPlayer.getMen()), 265, 336);
-        g.drawImage(this.font.getString(this.currentPlayer.getReparation()), 265, 368);
-        g.drawImage(this.font.getString(this.currentEnemy.getCannons()), 457, 304);
-        g.drawImage(this.font.getString(this.currentEnemy.getMen()), 457, 336);
-        g.drawImage(this.font.getString(this.currentEnemy.getReparation()), 457, 368);
+        g.drawImage(this.font.getString(this.currentPlayer.getCannons()), 240, 304);
+        g.drawImage(this.font.getString(this.currentPlayer.getMen()), 240, 336);
+        g.drawImage(this.font.getString(this.currentPlayer.getReparation()), 240, 368);
+        g.drawImage(this.font.getString(this.currentEnemy.getCannons()), 336, 304);
+        g.drawImage(this.font.getString(this.currentEnemy.getMen()), 336, 336);
+        g.drawImage(this.font.getString(this.currentEnemy.getReparation()), 336, 368);
         g.drawImage(img_shoot_cross, 449 + this.shotSide, 80 + this.shotElevation);
+        if (this.currentState == shoot.stateType.SHOOTING)
+        {
+            var buttonAreas = this.getShootButtonAreas();
+            g.drawImage(gfx_flee, buttonAreas.flee.x, buttonAreas.flee.y);
+            g.drawImage(gfx_shoot, buttonAreas.shoot.x, buttonAreas.shoot.y);
+        }
                 
         // If player has been promoted at least twice, shooting should be more difficult
         if (this.currentPlayer.getDifficulty() > 4)
@@ -130,22 +136,12 @@ this.keyEvent = function(c)
                 
                 if (c.toLowerCase() == fire)
                 {
-                    this.fireShots(); // Fire both player and enemy shots
-                    
-                    // Check if player or enemy enemy died from shooting
-                    if (this.currentPlayer.getDeathReason() == player.causeOfDeath.NOT_YET &&
-                        this.currentEnemy.getCurrentState() == enemy.stateType.GOOD)
-                        this.currentState = shoot.stateType.SHOT;
-                    else
-                        this.resetShooting();
+                    this.triggerFire();
                 }
                 else if (c.toLowerCase() == withdraw) // Withdraw from shooting
                 {
-                    this.resetShooting();
-                    this.currentAttack.setCurrentAttack(attack.attackType.WITHDRAW);
+                    this.triggerWithdraw();
                 }
-                // Arrow keys pressed at shooting screen - move shot cross
-                this.moveShotCross(c);
 
                 break;
                 
@@ -155,6 +151,73 @@ this.keyEvent = function(c)
                 break;
         }
 }
+
+    this.getShootButtonAreas = function()
+    {
+        var fleeX = this.applet.osimg.width - this.shootButtonMargin - gfx_flee.width;
+        var fleeY = this.applet.osimg.height - this.shootButtonMargin - gfx_flee.height;
+        var shootX = this.applet.osimg.width - this.shootButtonMargin - gfx_shoot.width;
+        var shootY = fleeY - this.shootButtonSpacing - gfx_shoot.height;
+
+        return {
+            shoot: { x: shootX, y: shootY, width: gfx_shoot.width, height: gfx_shoot.height },
+            flee: { x: fleeX, y: fleeY, width: gfx_flee.width, height: gfx_flee.height }
+        };
+    }
+
+    this.isPointInsideArea = function(point, area)
+    {
+        return point.x >= area.x &&
+               point.x <= area.x + area.width &&
+               point.y >= area.y &&
+               point.y <= area.y + area.height;
+    }
+
+    this.pointerEvent = function(point)
+    {
+        if (this.currentState == shoot.stateType.SHOT)
+        {
+            this.currentState = shoot.stateType.SHOOTING;
+            return true;
+        }
+
+        if (this.currentState != shoot.stateType.SHOOTING)
+            return false;
+
+        var areas = this.getShootButtonAreas();
+
+        if (this.isPointInsideArea(point, areas.shoot))
+        {
+            this.triggerFire();
+            return true;
+        }
+
+        if (this.isPointInsideArea(point, areas.flee))
+        {
+            this.triggerWithdraw();
+            return true;
+        }
+
+        return false;
+    }
+
+    this.triggerFire = function()
+    {
+        this.fireShots(); // Fire both player and enemy shots
+
+        // Check if player or enemy enemy died from shooting
+        if (this.currentPlayer.getDeathReason() == player.causeOfDeath.NOT_YET &&
+            this.currentEnemy.getCurrentState() == enemy.stateType.GOOD)
+            this.currentState = shoot.stateType.SHOT;
+        else
+            this.resetShooting();
+    }
+
+    this.triggerWithdraw = function()
+    {
+        this.resetShooting();
+        this.currentAttack.setCurrentAttack(attack.attackType.WITHDRAW);
+    }
         
     // ------------------- Methods in this game object not specified by interface -------------------
     
@@ -234,6 +297,17 @@ this.keyEvent = function(c)
         }
         
         // Check if movement allowed
+        if (this.shotSide < -100) this.shotSide = -100;
+        if (this.shotSide > 100) this.shotSide = 100;
+        if (this.shotElevation < -60) this.shotElevation = -60;
+        if (this.shotElevation > 60) this.shotElevation = 60;
+    }
+
+    this.dragAim = function(dx, dy)
+    {
+        this.shotSide += dx;
+        this.shotElevation += dy;
+
         if (this.shotSide < -100) this.shotSide = -100;
         if (this.shotSide > 100) this.shotSide = 100;
         if (this.shotElevation < -60) this.shotElevation = -60;

@@ -80,7 +80,6 @@ function help(k)
         {
             // Show hardcoded shooting image for help menu 4
             g.drawImage(img_shoot_help, 9, 0); 
-            g.drawImage(this.font.getResource("Continue"), 11, 0);
         }
         else // Show all other pages
         {
@@ -97,7 +96,6 @@ function help(k)
                 {
                     if (this.pageEnd) // 2 empty text lines in a row means end-of-page
                     {
-                        g.drawImage(this.font.getResource("Continue"), 0, i * 16);
                         break;
                     }
                     else // First empty text line found
@@ -137,16 +135,26 @@ function help(k)
         // Change page if character pressed and not on main page
         else if (this.currentMenu != 10)
         {
-            // Help menu 4 has image-only pages between text pages.
-            var hasNextPage = this.hasHelpPage(this.currentMenu, this.currentPage + 1) ||
-                              this.hasHelpPage(this.currentMenu, this.currentPage + 2);
-            
-            // Show next help page on this menu (if it exist)
-            if (hasNextPage)
-                this.currentPage += 1;
-            else
-                this.resetMenu();
+            // Page advancement is pointer-only.
         }
+    }
+
+    this.pointerEvent = function()
+    {
+        if (this.currentMenu == 10)
+            return false;
+
+        // Help menu 4 has image-only pages between text pages.
+        var hasNextPage = this.hasHelpPage(this.currentMenu, this.currentPage + 1) ||
+                          this.hasHelpPage(this.currentMenu, this.currentPage + 2);
+
+        // Show next help page on this menu (if it exist)
+        if (hasNextPage)
+            this.currentPage += 1;
+        else
+            this.resetMenu();
+
+        return true;
     }
     
     // ------------------- Methods in this game object not specified by interface -------------------

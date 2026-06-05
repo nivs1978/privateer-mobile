@@ -146,3 +146,14 @@ var img_map_mode1 = getImage("images/map-mode1.png");
 
 var gfx_uk_flag = getImage("gfx/uk.png");
 var gfx_dk_flag = getImage("gfx/dk.png");
+var gfx_attack = getImage("gfx/attack.png");
+var gfx_flee = getImage("gfx/flee.png");
+var gfx_board = getImage("gfx/board.png");
+var gfx_shoot = getImage("gfx/shoot.png");
+var gfx_fight = getImage("gfx/fight.png");
+var gfx_withdraw = getImage("gfx/withdraw.png");
+var gfx_sink = getImage("gfx/sink.png");
+var gfx_prize = getImage("gfx/prize.png");
+var gfx_leave = getImage("gfx/leave.png");
+var gfx_yes = getImage("gfx/yes.png");
+var gfx_no = getImage("gfx/no.png");

@@ -49,6 +49,7 @@ function harbor(k) {
     this.harborHoleLocation = null;
     this.playerMove = null;
     this.showWindArrows = null;
+    this.swipeMinDistance = 24;
 
     /**
      * Fake paint method called from Applet.paint
@@ -77,7 +78,6 @@ function harbor(k) {
                     g.drawImage(this.font.getResource("Harbor13"), 208, 208);
                     g.drawImage(this.font.getString(String.fromCharCode(128)), 256, 224); // Arrow pointing left
                 }
-                g.drawImage(this.font.getResource("Continue"), 0, 256);
                 break;
 
             case harbor.actionType.SAILING: // Player entering the harbor
@@ -115,18 +115,14 @@ function harbor(k) {
                 g.drawImage(this.font.getResource("Prize3"), 0, 32);
                 g.drawImage(this.font.getResource("Prize4", this.currentPlayer.getPrizeMoney()), 0, 48);
                 g.drawImage(this.font.getResource("Prize5"), 0, 64);
-                g.drawImage(this.font.getResource("Continue"), 0, 96);
                 break;
 
             case harbor.actionType.HARBOR_DEAD:
                 g.drawImage(this.font.getResource("Dead1"), 0, 0);
                 if (this.font.getResourceAsString("Dead2").length > 0) {
                     g.drawImage(this.font.getResource("Dead2"), 0, 16);
-                    g.drawImage(this.font.getResource("Continue"), 0, 32);
                 }
-                else {
-                    g.drawImage(this.font.getResource("Continue"), 0, 16);
-                }
+                
         }
     }
 
@@ -135,33 +131,75 @@ function harbor(k) {
      */
     this.keyEvent = function (c) {
         switch (this.currentAction) {
-            case harbor.actionType.INTRO: // All keys start the sailing action scene
-                this.currentAction = harbor.actionType.SAILING;
-                break;
-
             case harbor.actionType.SAILING:
-                if (this.playerShip.y == 0) // Start animation if not allready started
-                    this.applet.animationRepaint = true;
-
-                // Move ship if arrow left or right pressed
-                if (this.playerMove == 0) {
-                    if (c == "4" || c == "ArrowLeft")
-                        this.playerMove = 1; // Player moves left
-                    else if (c == "6" || c == "ArrowRight")
-                        this.playerMove = 2; // Player moves right
-                }
-
+                // Sailing movement is swipe-only.
                 break;
+        }
+    }
 
-            case harbor.actionType.HARBOR_PRIZES: // Collect players prizes
+    this.pointerEvent = function()
+    {
+        switch (this.currentAction)
+        {
+            case harbor.actionType.INTRO: // Tap to start the sailing action scene
+                this.currentAction = harbor.actionType.SAILING;
+                return true;
+
+            case harbor.actionType.HARBOR_PRIZES: // Collect player prizes
                 this.currentPlayer.collectPrizes();
                 this.applet.setCurrentAction(kaper.actionType.CITY);
-                break;
+                return true;
 
             case harbor.actionType.HARBOR_DEAD: // Player died from sailing into harbor
                 this.applet.setCurrentStep(kaper.stepType.HIGHSCORE);
-                break;
+                return true;
         }
+
+        return false;
+    }
+
+    this.swipeEvent = function(dx, dy)
+    {
+        if (this.currentAction != harbor.actionType.SAILING)
+            return false;
+
+        if (Math.abs(dx) <= Math.abs(dy) || Math.abs(dx) < this.swipeMinDistance)
+            return false;
+
+        if (this.playerShip.y == 0) // Start animation if not already started
+            this.applet.animationRepaint = true;
+
+        if (this.playerMove == 0)
+        {
+            if (dx < 0)
+                this.playerMove = 1; // Player moves left
+            else
+                this.playerMove = 2; // Player moves right
+        }
+
+        return true;
+    }
+
+    this.dragEvent = function(dx, threshold)
+    {
+        if (this.currentAction != harbor.actionType.SAILING)
+            return false;
+
+        if (Math.abs(dx) < threshold)
+            return false;
+
+        if (this.playerShip.y == 0) // Start animation if not already started
+            this.applet.animationRepaint = true;
+
+        if (this.playerMove == 0)
+        {
+            if (dx < 0)
+                this.playerMove = 1; // Player moves left
+            else
+                this.playerMove = 2; // Player moves right
+        }
+
+        return true;
     }
 
     // ------------------- Methods in this game object not specified by interface -------------------

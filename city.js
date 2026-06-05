@@ -44,6 +44,96 @@ function city(k)
     this.currentBuySellError; // Error to show user if something went wrong with the buy/sell
     
     this.currentAction; // What are the player doing right now
+    this.tableStartY = 96;
+    this.tableRowHeight = 24;
+    this.colLabelX = 0;
+    this.colAdd10X = 128;
+    this.colAdd1X = 160;
+    this.colValueX = 176;
+    this.colSub1X = 256;
+    this.colSub10X = 288;
+    this.colPriceX = 320;
+    this.buttonHitPadding = 4;
+    this.buttonHitSize = 24;
+
+    this.rows = [
+        {
+            key: "men",
+            labelResource: "CityTableMen",
+            priceResource: "City3",
+            priceIndex: 0,
+            getAmount: function() { return this.currentPlayer.getMen(); },
+            setAmount: function(v) { this.currentPlayer.setMen(v); },
+            canBuy: true,
+            canSell: false,
+            maxAmount: 499
+        },
+        {
+            key: "repair",
+            labelResource: "CityTableRepair",
+            priceResource: "City4",
+            priceIndex: 1,
+            getAmount: function() { return this.currentPlayer.getReparation(); },
+            setAmount: function(v) { this.currentPlayer.setReparation(v); },
+            canBuy: true,
+            canSell: false,
+            maxAmount: 999
+        },
+        {
+            key: "cannons",
+            labelResource: "CityTableCannons",
+            priceResource: "City5",
+            priceIndex: 2,
+            getAmount: function() { return this.currentPlayer.getCannons(); },
+            setAmount: function(v) { this.currentPlayer.setCannons(v); },
+            canBuy: true,
+            canSell: true,
+            maxAmount: 149
+        },
+        {
+            key: "grain",
+            labelResource: "CityTableGrain",
+            priceResource: "City6",
+            priceIndex: 3,
+            getAmount: function() { return this.currentPlayer.getGrain(); },
+            setAmount: function(v) { this.currentPlayer.setGrain(v); },
+            canBuy: true,
+            canSell: true,
+            maxAmount: 699
+        },
+        {
+            key: "jewels",
+            labelResource: "CityTableJewels",
+            priceResource: "City7",
+            priceIndex: 4,
+            getAmount: function() { return this.currentPlayer.getJewels(); },
+            setAmount: function(v) { this.currentPlayer.setJewels(v); },
+            canBuy: false,
+            canSell: true,
+            maxAmount: null
+        }
+    ];
+
+    this.getTablePriceText = function(row, price)
+    {
+        var fullText = this.font.getResourceAsString(row.priceResource) || "";
+        fullText = fullText.replace("{0}", "" + price);
+
+        var open = fullText.indexOf("(");
+        if (open >= 0)
+        {
+            return fullText.substring(open).trim();
+        }
+
+        var colon = fullText.indexOf(":");
+        if (colon >= 0)
+        {
+            return fullText.substring(colon + 1).trim();
+        }
+
+        return fullText.trim();
+    }
+    this.leaveIconY = 176;
 
     /**
      * Constructor
@@ -70,29 +160,10 @@ function city(k)
         
         // Show city menu
         g.drawImage(this.font.getResource("City1", this.currentCity), 0, 32);
-        if (this.currentAction == city.actionType.NONE)
-            g.drawImage(this.font.getResource("City2", ""), 0, 64);
-        else if (this.currentAction == city.actionType.BUY)
-            g.drawImage(this.font.getResource("City2", this.currentActionChar), 0, 64);
-        else // Then player must be selling
-            g.drawImage(this.font.getResource("City2", "5"), 0, 64);
-        g.drawImage(this.font.getResource("City3", this.pResources[0]), 0, 96);
-        g.drawImage(this.font.getResource("City4", this.pResources[1]), 0, 112);
-        g.drawImage(this.font.getResource("City5", this.pResources[2]), 0, 128);
-        g.drawImage(this.font.getResource("City6", this.pResources[3]), 0, 144);
-        g.drawImage(this.font.getResource("City7"), 0, 160);
-        g.drawImage(this.font.getResource("City8"), 0, 176);
-        
-        // Show buying text
-        if (this.currentAction == city.actionType.BUY)
-            g.drawImage(this.font.getResource("CityBuy1", this.currentBuySellAmount), 0, 208);
-        
-        // Show selling text
-        if (this.currentAction == city.actionType.SELL_1 ||
-            this.currentAction == city.actionType.SELL_2)
-            g.drawImage(this.font.getResource("CitySell1"), 0, 208);
-        if (this.currentAction == city.actionType.SELL_2)
-            g.drawImage(this.font.getResource("CitySell" + (this.currentActionChar - 1), this.currentBuySellAmount), 0, 224);
+        g.drawImage(this.font.getResource("City2", ""), 0, 64);
+
+        this.drawTable(g);
+        this.drawLeaveIcon(g);
         
         // Show error if buying or selling goes wrong
         if (this.currentBuySellError.length > 0)
@@ -106,91 +177,171 @@ function city(k)
     {
         if (c == "F1") // F1 pressed - show help menu
             this.applet.setCurrentAction(kaper.actionType.HELP);
-        if (this.currentAction == city.actionType.NONE)
+        if (c == "6")
         {
-            switch(c)
+            this.applet.setCurrentAction(kaper.actionType.MAP);
+            this.currentPlayer.checkPlayerStatus();
+            return;
+        }
+    }
+
+    this.drawTable = function(g)
+    {
+        var doubleUp = String.fromCharCode(139);
+        var up = String.fromCharCode(141);
+        var down = String.fromCharCode(142);
+        var doubleDown = String.fromCharCode(140);
+
+        for (var i = 0; i < this.rows.length; i++)
+        {
+            var row = this.rows[i];
+            var y = this.tableStartY + (i * this.tableRowHeight);
+            var amount = row.getAmount.call(this);
+            var price = this.pResources[row.priceIndex];
+
+            g.drawImage(this.font.getResource(row.labelResource), this.colLabelX, y);
+            if (row.canBuy)
             {
-                case "1": // 1 pressed - buy men
-                    this.currentActionChar = 1;
-                    this.currentAction = city.actionType.BUY;
-                    break;
-                case "2": // 2 pressed - buy reparation points
-                    this.currentActionChar = 2;
-                    this.currentAction = city.actionType.BUY;
-                    break;
-                case "3": // 3 pressed - buy cannons
-                    this.currentActionChar = 3;
-                    this.currentAction = city.actionType.BUY;
-                    break;
-                case "4": // 4 pressed - buy grain
-                    this.currentActionChar = 4;
-                    this.currentAction = city.actionType.BUY;
-                    break;
-                case "5": // 5 pressed - sell something
-                    this.currentActionChar = 5;
-                    this.currentAction = city.actionType.SELL_1;
-                    break;
-                case "6": // 6 pressed - leave city
-                    this.applet.setCurrentAction(kaper.actionType.MAP);
-                    this.currentPlayer.checkPlayerStatus();
-                    break;
-                default:
-                    playsound("beep"); //Toolkit.getDefaultToolkit().beep();
-                    break;
+                g.drawImage(this.font.getString(doubleUp), this.colAdd10X, y);
+                g.drawImage(this.font.getString(up), this.colAdd1X, y);
+            }
+            g.drawImage(this.font.getString(("" + amount).padStart(4, " ")), this.colValueX, y);
+            if (row.canSell)
+            {
+                g.drawImage(this.font.getString(down), this.colSub1X, y);
+                g.drawImage(this.font.getString(doubleDown), this.colSub10X, y);
+            }
+            g.drawImage(this.font.getString(this.getTablePriceText(row, price)), this.colPriceX, y);
+        }
+    }
+
+    this.getLeaveArea = function()
+    {
+        var x = Math.floor((this.applet.osimg.width - gfx_leave.width) / 2);
+        return {
+            x: x,
+            y: 232,
+            width: gfx_leave.width,
+            height: gfx_leave.height
+        };
+    }
+
+    this.drawLeaveIcon = function(g)
+    {
+        var area = this.getLeaveArea();
+        g.drawImage(gfx_leave, area.x, area.y);
+    }
+
+    this.isPointInsideArea = function(point, area)
+    {
+        return point.x >= area.x &&
+               point.x <= area.x + area.width &&
+               point.y >= area.y &&
+               point.y <= area.y + area.height;
+    }
+
+    this.getButtonArea = function(x, y)
+    {
+        return {
+            x: x - this.buttonHitPadding,
+            y: y - this.buttonHitPadding,
+            width: this.buttonHitSize,
+            height: this.buttonHitSize
+        };
+    }
+
+    this.pointerEvent = function(point)
+    {
+        this.currentBuySellError = "";
+
+        var action = this.getTableActionAtPoint(point);
+        if (action)
+        {
+            this.applyTableAction(action.rowIndex, action.delta);
+            return true;
+        }
+
+        var leaveArea = this.getLeaveArea();
+        if (!this.isPointInsideArea(point, leaveArea))
+            return false;
+
+        this.applet.setCurrentAction(kaper.actionType.MAP);
+        this.currentPlayer.checkPlayerStatus();
+        return true;
+    }
+
+    this.getTableActionAtPoint = function(point)
+    {
+        for (var i = 0; i < this.rows.length; i++)
+        {
+            var row = this.rows[i];
+            var y = this.tableStartY + (i * this.tableRowHeight);
+            var add10 = this.getButtonArea(this.colAdd10X, y);
+            var add1 = this.getButtonArea(this.colAdd1X, y);
+            var sub1 = this.getButtonArea(this.colSub1X, y);
+            var sub10 = this.getButtonArea(this.colSub10X, y);
+
+            if (row.canBuy)
+            {
+                if (this.isPointInsideArea(point, add10)) return { rowIndex: i, delta: 10 };
+                if (this.isPointInsideArea(point, add1)) return { rowIndex: i, delta: 1 };
+            }
+            if (row.canSell)
+            {
+                if (this.isPointInsideArea(point, sub1)) return { rowIndex: i, delta: -1 };
+                if (this.isPointInsideArea(point, sub10)) return { rowIndex: i, delta: -10 };
             }
         }
-        else if ((this.currentAction == city.actionType.BUY ||
-                 this.currentAction == city.actionType.SELL_2) &&
-                 this.currentBuySellError.length == 0)
+
+        return null;
+    }
+
+    this.applyTableAction = function(rowIndex, delta)
+    {
+        var row = this.rows[rowIndex];
+        var price = this.pResources[row.priceIndex];
+        var amount = row.getAmount.call(this);
+
+        if (delta > 0)
         {
-            // Add char to amount either buying or selling
-            var no = c.charCodeAt(0)-48;
-            if (c >= 0 && c <= 9 && this.currentBuySellAmount.length < 4)
+            if (!row.canBuy)
             {
-                this.currentBuySellAmount += c;
+                playsound("beep");
+                return;
             }
-            else if (c == "Backspace") // Backspace key
+
+            var maxAffordable = Math.floor(this.currentPlayer.getMoney() / price);
+            var allowed = Math.min(delta, maxAffordable);
+
+            if (row.maxAmount != null)
+                allowed = Math.min(allowed, Math.max(0, row.maxAmount - amount));
+
+            if (allowed <= 0)
             {
-                if (this.currentBuySellAmount.length > 0)
-                    this.currentBuySellAmount = this.currentBuySellAmount.substring(0, this.currentBuySellAmount.length - 1);
-                }
-            else if (c == "Enter" && this.currentBuySellAmount.length > 0) // Return key
-            {
-                if (this.currentAction == city.actionType.BUY) // Player is buying
-                    this.buyResources();
-                else // Player is selling
-                    this.sellResources();
+                playsound("beep");
+                return;
             }
+
+            row.setAmount.call(this, amount + allowed);
+            this.currentPlayer.setMoney(this.currentPlayer.getMoney() - (allowed * price));
+            return;
         }
-        else if (this.currentAction == city.actionType.SELL_1)
+
+        if (!row.canSell)
         {
-            var cannons = this.font.getResourceAsString("CitySellC").charAt(0);
-            var grain = this.font.getResourceAsString("CitySellG").charAt(0);
-            var jewels = this.font.getResourceAsString("CitySellJ").charAt(0);
-            
-            if (c == cannons)
-            {
-                this.currentActionChar = 3;
-                this.currentAction = city.actionType.SELL_2;
-            }
-            else if (c == grain)
-            {
-                this.currentActionChar = 4;
-                this.currentAction = city.actionType.SELL_2;
-            }
-            else if (c == jewels)
-            {
-                this.currentActionChar = 5;
-                this.currentAction = city.actionType.SELL_2;
-            }
-            else // Player has to choose either Grain, Cannons or Jewels
-                playsound("beep"); //Toolkit.getDefaultToolkit().beep();
+            playsound("beep");
+            return;
         }
-        else if (this.currentBuySellError.length > 0)
+
+        var sellCount = Math.min(Math.abs(delta), amount);
+        if (sellCount <= 0)
         {
-            // Warning showed, now reset the action
-            this.resetAction();
+            playsound("beep");
+            return;
         }
+
+        row.setAmount.call(this, amount - sellCount);
+        this.currentPlayer.setMoney(this.currentPlayer.getMoney() + (sellCount * price));
     }
     
     // ------------------- Methods in this game object not specified by interface -------------------
@@ -218,7 +369,6 @@ function city(k)
         // Check if player got enough money
         if (total > this.currentPlayer.getMoney())
         {
-            this.currentBuySellError = this.font.getResourceAsString("CityBuy2");
             playsound("beep"); //Toolkit.getDefaultToolkit().beep();
             return;
         }
@@ -230,6 +380,9 @@ function city(k)
             case 1:
                 if (this.currentPlayer.getMen() + amount > 499) tooMuch = true;
                 break;
+            case 2:
+                if (this.currentPlayer.getReparation() + amount > 999) tooMuch = true;
+                break;
             case 3:
                 if (this.currentPlayer.getCannons() + amount > 149) tooMuch = true;
                 break;
@@ -239,7 +392,6 @@ function city(k)
         }
         if (tooMuch)
         {
-            this.currentBuySellError = this.font.getResourceAsString("CityBuy3");
             playsound("beep"); //Toolkit.getDefaultToolkit().beep();
             return;
         }
@@ -291,7 +443,6 @@ function city(k)
         }
         if (tooMuch)
         {
-            this.currentBuySellError = this.font.getResourceAsString("CitySell5");
             playsound("beep"); //Toolkit.getDefaultToolkit().beep();
             return;
         }

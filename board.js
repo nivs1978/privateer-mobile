@@ -55,6 +55,8 @@ function board(k, e, a)
     this.enemyMenLostShow = 0; 
     
     this.currentState = null; // What part of boarding are we at now
+    this.actionIconSpacing = 60;
+    this.actionIconY = 240;
 
     /**
  * Prepare boarding variables
@@ -97,22 +99,29 @@ function board(k, e, a)
         if (this.currentState != board.stateType.SHIP_ANIMATION)
         {
             this.applet.getMap().paint(g); // Paint stats in bottom of screen
-            g.drawImage(this.font.getResource("Boarding1"), 0, 128);
+            g.drawImage(this.font.getResource("Boarding1"), 0, 0);
             var enemyName = this.currentEnemy.getName();
             if (this.currentEnemy.getEnemyType() != 7)
                 enemyName = this.font.getResourceAsString("BoardingEnemyName1") + enemyName.substring(enemyName.indexOf(" "));
             else
                 enemyName = this.font.getResourceAsString("BoardingEnemyName2");
-            g.drawImage(this.font.getResource("Boarding2", enemyName), 0, 144);
-            g.drawImage(this.font.getResource("Boarding3", this.enemyMenLostShow), 0, 160);
-            g.drawImage(this.font.getResource("Boarding4", this.enemyMenShow), 0, 176);
-            g.drawImage(this.font.getResource("Boarding5", this.playerMenLostShow), 0, 192);
-            g.drawImage(this.font.getResource("Boarding6"), 0, 224);
-            g.drawImage(this.font.getResource("Boarding7"), 0, 240);
+            g.drawImage(this.font.getResource("Boarding2", enemyName), 0, 16);
+            g.drawImage(this.font.getResource("Boarding3", this.enemyMenLostShow), 0, 144);
+            g.drawImage(this.font.getResource("Boarding4", this.enemyMenShow), 0, 160);
+            g.drawImage(this.font.getResource("Boarding5", this.playerMenLostShow), 0, 176);
+            g.drawImage(this.font.getResource("Boarding6"), 0, 192);
+            g.drawImage(this.font.getResource("Boarding7"), 0, 208);
             if (this.currentState == board.stateType.FLAG_ANIMATION) // Hack - needed for flag animation scene
             {
                 g.drawImage(this.font.getString("          "), 25, 368);
                 g.drawImage(this.font.getResource("Map9", this.playerMenShow), 25, 368);
+            }
+
+            if (this.currentState == board.stateType.BOARDING)
+            {
+                var areas = this.getActionIconAreas();
+                g.drawImage(gfx_fight, areas.fight.x, areas.fight.y);
+                g.drawImage(gfx_withdraw, areas.withdraw.x, areas.withdraw.y);
             }
         }
     }
@@ -122,16 +131,60 @@ function board(k, e, a)
      */
 this.keyEvent = function(c)
     {
-    if (this.currentState == board.stateType.BOARDING)
-        {
-        var fight = this.font.getResourceAsString("BoardTypeF").charAt(0);
-        var withdraw = this.font.getResourceAsString("BoardTypeW").charAt(0);
+        // Boarding action input is pointer-only.
+    }
 
-            if (c.toLowerCase() == fight)
-                this.boardEnemy(); // Board enemy once more
-            else if (c.toLowerCase() == withdraw) // Withdraw from shooting
-                this.currentAttack.setCurrentAttack(attack.attackType.WITHDRAW);
+    this.getActionIconAreas = function()
+    {
+        var fightWidth = gfx_fight.width;
+        var withdrawWidth = gfx_withdraw.width;
+        var totalWidth = fightWidth + this.actionIconSpacing + withdrawWidth;
+        var startX = Math.floor((this.applet.osimg.width - totalWidth) / 2);
+
+        return {
+            fight: {
+                x: startX,
+                y: this.actionIconY,
+                width: gfx_fight.width,
+                height: gfx_fight.height
+            },
+            withdraw: {
+                x: startX + fightWidth + this.actionIconSpacing,
+                y: this.actionIconY,
+                width: gfx_withdraw.width,
+                height: gfx_withdraw.height
+            }
+        };
+    }
+
+    this.isPointInsideArea = function(point, area)
+    {
+        return point.x >= area.x &&
+               point.x <= area.x + area.width &&
+               point.y >= area.y &&
+               point.y <= area.y + area.height;
+    }
+
+    this.pointerEvent = function(point)
+    {
+        if (this.currentState != board.stateType.BOARDING)
+            return false;
+
+        var areas = this.getActionIconAreas();
+
+        if (this.isPointInsideArea(point, areas.fight))
+        {
+            this.boardEnemy();
+            return true;
         }
+
+        if (this.isPointInsideArea(point, areas.withdraw))
+        {
+            this.currentAttack.setCurrentAttack(attack.attackType.WITHDRAW);
+            return true;
+        }
+
+        return false;
     }
         
     // ------------------- Methods in this game object not specified by interface -------------------

@@ -169,6 +169,10 @@ function cgafont()
         img.height = 16;
 
         var ctx = img.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        ctx.webkitImageSmoothingEnabled = false;
+        ctx.mozImageSmoothingEnabled = false;
+        ctx.msImageSmoothingEnabled = false;
         ctx.clearRect(0, 0, img.width, img.height);
 
         var cursorx = 0;
@@ -202,6 +206,10 @@ function cgafont()
             img.height = 16;
     
             var ctx = img.getContext("2d");
+            ctx.imageSmoothingEnabled = false;
+            ctx.webkitImageSmoothingEnabled = false;
+            ctx.mozImageSmoothingEnabled = false;
+            ctx.msImageSmoothingEnabled = false;
     
             var cursorx = 0;
     

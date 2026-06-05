@@ -58,12 +58,20 @@ function kaper()
     this.endScreenInputUnlockedAt = 0; // Timestamp when end screen key input is allowed again
 
     this.highScoreStorageKey = "privateer.highscore.v1";
+    this.languageStorageKey = "privateer.language.v1";
+    this.nameStorageKey = "privateer.name.v1";
+    this.saveGameStorageKey = "privateer.savegame.v1";
     this.highScore = { score: 0, name: "" }; // Original game stores one record holder
     this.nameInput = null;
     this.flagSelectionY = 200;
     this.flagSelectionWidth = 62;
     this.flagSelectionHeight = 42;
     this.flagSelectionSpacing = 60;
+    this.swipeStartPoint = null;
+    this.swipeMinDistance = 24;
+    this.dragLastPoint = null;
+    this.mouseDragActive = false;
+    this.returnToGameAfterLanguageSelect = false;
 
     var okaper = this; // To be able to access this object from the keyboard functions
 
@@ -82,6 +90,229 @@ function kaper()
     this.addPointerListener = function()
     {
         this.osimg.addEventListener("click", this.handleWelcomePointer, false);
+        this.osimg.addEventListener("mousedown", this.handleMouseDown, false);
+        this.osimg.addEventListener("mousemove", this.handleMouseMove, false);
+        this.osimg.addEventListener("mouseup", this.handleMouseUp, false);
+        this.osimg.addEventListener("mouseleave", this.handleMouseUp, false);
+        this.osimg.addEventListener("touchstart", this.handleTouchStart, { passive: false });
+        this.osimg.addEventListener("touchmove", this.handleTouchMove, { passive: false });
+        this.osimg.addEventListener("touchend", this.handleTouchEnd, { passive: false });
+        this.osimg.addEventListener("touchcancel", this.handleTouchCancel, false);
+    }
+
+    this.isShootDragActive = function()
+    {
+        return okaper.currentStep == kaper.stepType.GAME_PLAYING &&
+               okaper.currentAction == kaper.actionType.ATTACK &&
+               okaper.gAttack &&
+               okaper.gAttack.getCurrentAttack() == attack.attackType.SHOOT;
+    }
+
+    this.applyShootDrag = function(dxClient, dyClient)
+    {
+        if (!okaper.isShootDragActive())
+        {
+            return false;
+        }
+
+        var rect = okaper.osimg.getBoundingClientRect();
+        var scaleX = okaper.osimg.width / rect.width;
+        var scaleY = okaper.osimg.height / rect.height;
+        var dxCanvas = dxClient * scaleX;
+        var dyCanvas = dyClient * scaleY;
+
+        okaper.gAttack.getCurrentShoot().dragAim(dxCanvas, dyCanvas);
+        okaper.repaint();
+        return true;
+    }
+
+    this.handleTouchStart = function(e)
+    {
+        if (!e.touches || e.touches.length === 0)
+        {
+            return;
+        }
+
+        var touch = e.touches[0];
+        okaper.swipeStartPoint = { x: touch.clientX, y: touch.clientY };
+        if (okaper.isShootDragActive())
+        {
+            okaper.dragLastPoint = { x: touch.clientX, y: touch.clientY };
+            if (e.preventDefault) e.preventDefault();
+        }
+    }
+
+    this.handleTouchMove = function(e)
+    {
+        if (!e.touches || e.touches.length === 0)
+        {
+            return;
+        }
+
+        var touch = e.touches[0];
+
+        if (okaper.isShootDragActive() && okaper.dragLastPoint)
+        {
+            var dxClient = touch.clientX - okaper.dragLastPoint.x;
+            var dyClient = touch.clientY - okaper.dragLastPoint.y;
+            okaper.dragLastPoint = { x: touch.clientX, y: touch.clientY };
+            if (okaper.applyShootDrag(dxClient, dyClient) && e.preventDefault) e.preventDefault();
+            return;
+        }
+
+        if (!okaper.swipeStartPoint)
+        {
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.GAME_PLAYING &&
+            okaper.currentAction == kaper.actionType.HARBOR &&
+            okaper.gHarbor.getCurrentAction() == harbor.actionType.SAILING)
+        {
+            var dx = touch.clientX - okaper.swipeStartPoint.x;
+            var dy = touch.clientY - okaper.swipeStartPoint.y;
+            var screenWidth = okaper.osimg.getBoundingClientRect().width;
+            var dragThreshold = Math.max(12, screenWidth * 0.01);
+
+            if (Math.abs(dx) > Math.abs(dy) && okaper.gHarbor.dragEvent(dx, dragThreshold))
+            {
+                okaper.swipeStartPoint = { x: touch.clientX, y: touch.clientY };
+                if (e.preventDefault) e.preventDefault();
+                okaper.repaint();
+            }
+        }
+    }
+
+    this.getSwipeDirectionKey = function(dx, dy)
+    {
+        var distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < okaper.swipeMinDistance)
+        {
+            return null;
+        }
+
+        var angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+        if (angle >= -22.5 && angle < 22.5) return "6"; // Right
+        if (angle >= 22.5 && angle < 67.5) return "3"; // Down-right
+        if (angle >= 67.5 && angle < 112.5) return "2"; // Down
+        if (angle >= 112.5 && angle < 157.5) return "1"; // Down-left
+        if (angle >= 157.5 || angle < -157.5) return "4"; // Left
+        if (angle >= -157.5 && angle < -112.5) return "7"; // Up-left
+        if (angle >= -112.5 && angle < -67.5) return "8"; // Up
+        return "9"; // Up-right
+    }
+
+    this.handleTouchEnd = function(e)
+    {
+        okaper.dragLastPoint = null;
+
+        if (!okaper.swipeStartPoint || !e.changedTouches || e.changedTouches.length === 0)
+        {
+            okaper.swipeStartPoint = null;
+            return;
+        }
+
+        var touch = e.changedTouches[0];
+        var dx = touch.clientX - okaper.swipeStartPoint.x;
+        var dy = touch.clientY - okaper.swipeStartPoint.y;
+        okaper.swipeStartPoint = null;
+
+        if (okaper.currentStep == kaper.stepType.GAME_LOST || okaper.currentStep == kaper.stepType.HIGHSCORE)
+        {
+            okaper.handleWelcomePointer(e);
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.GAME_PLAYING && okaper.currentAction == kaper.actionType.ATTACK)
+        {
+            okaper.handleWelcomePointer(e);
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.GAME_PLAYING && okaper.currentAction == kaper.actionType.MIST)
+        {
+            okaper.handleWelcomePointer(e);
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.GAME_PLAYING && okaper.currentAction == kaper.actionType.HARBOR)
+        {
+            if (okaper.gHarbor.getCurrentAction() == harbor.actionType.SAILING)
+            {
+                if (e.preventDefault) e.preventDefault();
+            }
+            else
+            {
+                okaper.handleWelcomePointer(e);
+            }
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.GAME_PLAYING &&
+            (okaper.currentAction == kaper.actionType.PROMOTE ||
+             okaper.currentAction == kaper.actionType.CITY ||
+             okaper.currentAction == kaper.actionType.HELP))
+        {
+            okaper.handleWelcomePointer(e);
+            return;
+        }
+
+        if (okaper.currentStep != kaper.stepType.GAME_PLAYING || okaper.currentAction != kaper.actionType.MAP)
+        {
+            return;
+        }
+
+        var directionKey = okaper.getSwipeDirectionKey(dx, dy);
+        if (!directionKey)
+        {
+            return;
+        }
+
+        if (e.preventDefault) e.preventDefault();
+        okaper.gMap.keyEvent(directionKey);
+        okaper.repaint();
+    }
+
+    this.handleTouchCancel = function()
+    {
+        okaper.swipeStartPoint = null;
+        okaper.dragLastPoint = null;
+    }
+
+    this.handleMouseDown = function(e)
+    {
+        if (!okaper.isShootDragActive())
+        {
+            return;
+        }
+
+        okaper.mouseDragActive = true;
+        okaper.dragLastPoint = { x: e.clientX, y: e.clientY };
+        if (e.preventDefault) e.preventDefault();
+    }
+
+    this.handleMouseMove = function(e)
+    {
+        if (!okaper.mouseDragActive || !okaper.dragLastPoint)
+        {
+            return;
+        }
+
+        var dxClient = e.clientX - okaper.dragLastPoint.x;
+        var dyClient = e.clientY - okaper.dragLastPoint.y;
+        okaper.dragLastPoint = { x: e.clientX, y: e.clientY };
+
+        if (okaper.applyShootDrag(dxClient, dyClient) && e.preventDefault)
+        {
+            e.preventDefault();
+        }
+    }
+
+    this.handleMouseUp = function()
+    {
+        okaper.mouseDragActive = false;
+        okaper.dragLastPoint = null;
     }
 
     this.createNameInput = function()
@@ -116,6 +347,7 @@ function kaper()
                 if (e.preventDefault) e.preventDefault();
                 if (okaper.currentPlayer.getName().length > 0)
                 {
+                    okaper.saveNameSetting(okaper.currentPlayer.getName());
                     okaper.setCurrentStep(kaper.stepType.GAME_PLAYING);
                     okaper.repaint();
                 }
@@ -226,10 +458,112 @@ function kaper()
 
     this.handleWelcomePointer = function(e)
     {
+        if (okaper.currentStep == kaper.stepType.GAME_LOST)
+        {
+            if (Date.now() < okaper.endScreenInputUnlockedAt)
+            {
+                return;
+            }
+
+            if (e.preventDefault) e.preventDefault();
+            okaper.setCurrentStep(kaper.stepType.HIGHSCORE);
+            okaper.repaint();
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.HIGHSCORE)
+        {
+            if (Date.now() < okaper.endScreenInputUnlockedAt)
+            {
+                return;
+            }
+
+            if (e.preventDefault) e.preventDefault();
+            okaper.currentPlayer.resetPlayer();
+            okaper.gMap.resetMap();
+            okaper.setCurrentAction(kaper.actionType.MAP);
+            okaper.setCurrentStep(kaper.stepType.INTRO_WELCOME);
+            okaper.repaint();
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.GAME_PLAYING && okaper.currentAction == kaper.actionType.ATTACK)
+        {
+            var attackPoint = okaper.getCanvasPointFromEvent(e);
+            if (okaper.gAttack.pointerEvent(attackPoint))
+            {
+                if (e.preventDefault) e.preventDefault();
+                okaper.repaint();
+            }
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.GAME_PLAYING && okaper.currentAction == kaper.actionType.MIST)
+        {
+            var mistPoint = okaper.getCanvasPointFromEvent(e);
+            if (okaper.gMist.pointerEvent(mistPoint))
+            {
+                if (e.preventDefault) e.preventDefault();
+                okaper.repaint();
+            }
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.GAME_PLAYING && okaper.currentAction == kaper.actionType.PROMOTE)
+        {
+            if (okaper.gPromote.pointerEvent())
+            {
+                if (e.preventDefault) e.preventDefault();
+                okaper.repaint();
+            }
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.GAME_PLAYING && okaper.currentAction == kaper.actionType.HARBOR)
+        {
+            if (okaper.gHarbor.pointerEvent())
+            {
+                if (e.preventDefault) e.preventDefault();
+                okaper.repaint();
+            }
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.GAME_PLAYING && okaper.currentAction == kaper.actionType.CITY)
+        {
+            var cityPoint = okaper.getCanvasPointFromEvent(e);
+            if (okaper.gCity.pointerEvent(cityPoint))
+            {
+                if (e.preventDefault) e.preventDefault();
+                okaper.repaint();
+            }
+            return;
+        }
+
+        if (okaper.currentStep == kaper.stepType.GAME_PLAYING && okaper.currentAction == kaper.actionType.HELP)
+        {
+            if (okaper.gHelp.pointerEvent())
+            {
+                if (e.preventDefault) e.preventDefault();
+                okaper.repaint();
+            }
+            return;
+        }
+
         if (okaper.currentStep == kaper.stepType.TITLE_SCREEN)
         {
             if (e.preventDefault) e.preventDefault();
-            okaper.setCurrentStep(kaper.stepType.INTRO_ENTER_NAME);
+            var savedName = okaper.loadNameSetting();
+            if (savedName && savedName.length > 0)
+            {
+                okaper.currentPlayer.setName(savedName);
+                okaper.syncPlayerToNameInput();
+                okaper.setCurrentStep(kaper.stepType.GAME_PLAYING);
+            }
+            else
+            {
+                okaper.setCurrentStep(kaper.stepType.INTRO_ENTER_NAME);
+            }
             okaper.repaint();
             return;
         }
@@ -254,7 +588,18 @@ function kaper()
             if (e.preventDefault) e.preventDefault();
             playsoundFromGesture("intro");
             okaper.font.setCurrentLocale(cgafont.localeType.ENGLISH);
-            okaper.setCurrentStep(kaper.stepType.TITLE_SCREEN);
+            okaper.saveLanguageSetting("en");
+            okaper.updateBurgerLabels();
+            if (okaper.returnToGameAfterLanguageSelect)
+            {
+                okaper.returnToGameAfterLanguageSelect = false;
+                okaper.setCurrentAction(kaper.actionType.MAP);
+                okaper.setCurrentStep(kaper.stepType.GAME_PLAYING);
+            }
+            else
+            {
+                okaper.setCurrentStep(kaper.stepType.TITLE_SCREEN);
+            }
             okaper.repaint();
             return;
         }
@@ -264,9 +609,214 @@ function kaper()
             if (e.preventDefault) e.preventDefault();
             playsoundFromGesture("intro");
             okaper.font.setCurrentLocale(cgafont.localeType.DANISH);
-            okaper.setCurrentStep(kaper.stepType.TITLE_SCREEN);
+            okaper.saveLanguageSetting("da");
+            okaper.updateBurgerLabels();
+            if (okaper.returnToGameAfterLanguageSelect)
+            {
+                okaper.returnToGameAfterLanguageSelect = false;
+                okaper.setCurrentAction(kaper.actionType.MAP);
+                okaper.setCurrentStep(kaper.stepType.GAME_PLAYING);
+            }
+            else
+            {
+                okaper.setCurrentStep(kaper.stepType.TITLE_SCREEN);
+            }
             okaper.repaint();
         }
+    }
+
+    // ------------------- Save game -------------------
+
+    this.saveGame = function()
+    {
+        if (this.currentStep !== kaper.stepType.GAME_PLAYING || this.currentAction !== kaper.actionType.MAP)
+            return;
+
+        var p = this.currentPlayer;
+        var data = {
+            score:                     p.score,
+            moves:                     p.moves,
+            difficulty:                p.difficulty,
+            posX:                      p.posX,
+            posY:                      p.posY,
+            money:                     p.money,
+            cannons:                   p.cannons,
+            men:                       p.men,
+            reparation:                p.reparation,
+            jewels:                    p.jewels,
+            grain:                     p.grain,
+            scoreToNextPromotion:      p.scoreToNextPromotion,
+            maxMovesBeforeNextPromotion: p.maxMovesBeforeNextPromotion,
+            eventExp:                  p.eventExp,
+            battlesWon:                p.battlesWon,
+            battlesLost:               p.battlesLost,
+            prizeMen:                  p.prizeMen,
+            prizeMoney:                p.prizeMoney,
+            mapData:                   this.gMap.currentMapData
+        };
+        try { localStorage.setItem(this.saveGameStorageKey, JSON.stringify(data)); }
+        catch (err) {}
+    }
+
+    this.loadSaveGame = function()
+    {
+        try
+        {
+            var raw = localStorage.getItem(this.saveGameStorageKey);
+            if (!raw) return false;
+
+            var d = JSON.parse(raw);
+            if (!d || typeof d.score !== "number") return false;
+
+            var p = this.currentPlayer;
+            p.score                       = d.score || 0;
+            p.moves                       = d.moves || 0;
+            p.difficulty                  = d.difficulty || 2;
+            p.posX                        = d.posX || 10;
+            p.posY                        = d.posY || 13;
+            p.money                       = d.money || 0;
+            p.cannons                     = d.cannons || 0;
+            p.men                         = d.men || 0;
+            p.reparation                  = d.reparation || 0;
+            p.jewels                      = d.jewels || 0;
+            p.grain                       = d.grain || 0;
+            p.scoreToNextPromotion        = d.scoreToNextPromotion || 0;
+            p.maxMovesBeforeNextPromotion = d.maxMovesBeforeNextPromotion || 0;
+            p.eventExp                    = d.eventExp || 2;
+            p.battlesWon                  = d.battlesWon || 1;
+            p.battlesLost                 = d.battlesLost || 1;
+            p.prizeMen                    = d.prizeMen || 0;
+            p.prizeMoney                  = d.prizeMoney || 0;
+            p.deathReason                 = player.causeOfDeath.NOT_YET;
+
+            if (d.mapData && d.mapData.length) this.gMap.currentMapData = d.mapData;
+
+            var savedName = this.loadNameSetting();
+            if (savedName) p.name = savedName;
+            this.syncPlayerToNameInput();
+            return true;
+        }
+        catch (err) { return false; }
+    }
+
+    this.deleteSaveGame = function()
+    {
+        try { localStorage.removeItem(this.saveGameStorageKey); }
+        catch (err) {}
+    }
+
+    // ------------------- Language / Name persistence -------------------
+
+    this.loadLanguageSetting = function()
+    {
+        try { return localStorage.getItem(this.languageStorageKey); }
+        catch (err) { return null; }
+    }
+
+    this.saveLanguageSetting = function(locale)
+    {
+        try { localStorage.setItem(this.languageStorageKey, locale); }
+        catch (err) {}
+    }
+
+    this.loadNameSetting = function()
+    {
+        try { return localStorage.getItem(this.nameStorageKey); }
+        catch (err) { return null; }
+    }
+
+    this.saveNameSetting = function(name)
+    {
+        try { localStorage.setItem(this.nameStorageKey, name || ""); }
+        catch (err) {}
+    }
+
+    // ------------------- Burger menu -------------------
+
+    this.toggleBurgerMenu = function()
+    {
+        if (!(this.currentStep === kaper.stepType.GAME_PLAYING && this.currentAction === kaper.actionType.MAP))
+            return;
+
+        var menu = document.getElementById("burger-menu");
+        if (!menu) return;
+        if (menu.style.display === "none" || menu.style.display === "")
+        {
+            this.updateBurgerLabels();
+            var saveBtn = document.getElementById("burger-item-save");
+            if (saveBtn)
+                saveBtn.disabled = !(this.currentStep === kaper.stepType.GAME_PLAYING && this.currentAction === kaper.actionType.MAP);
+            menu.style.display = "block";
+        }
+        else
+        {
+            menu.style.display = "none";
+        }
+    }
+
+    this.closeBurgerMenu = function()
+    {
+        var menu = document.getElementById("burger-menu");
+        if (menu) menu.style.display = "none";
+    }
+
+    this.updateBurgerVisibility = function()
+    {
+        var btn = document.getElementById("burger-btn");
+        if (!btn) return;
+
+        var show = (this.currentStep === kaper.stepType.GAME_PLAYING && this.currentAction === kaper.actionType.MAP);
+        btn.style.display = show ? "flex" : "none";
+        if (!show) this.closeBurgerMenu();
+    }
+
+    this.updateBurgerLabels = function()
+    {
+        var res = document.kaperresources;
+        if (!res) return;
+        var ids = { "burger-item-new": "BurgerMenuNew", "burger-item-save": "BurgerMenuSave",
+                    "burger-item-name": "BurgerMenuName", "burger-item-language": "BurgerMenuLanguage" };
+        for (var id in ids)
+        {
+            var el = document.getElementById(id);
+            if (el) el.textContent = res[ids[id]] || el.textContent;
+        }
+    }
+
+    this.burgerNew = function()
+    {
+        this.closeBurgerMenu();
+        this.currentPlayer.resetPlayer();
+        this.gMap.resetMap();
+        this.setCurrentAction(kaper.actionType.MAP);
+        this.animationRepaint = false;
+        this.setCurrentStep(kaper.stepType.TITLE_SCREEN);
+        this.repaint();
+    }
+
+    this.burgerSave = function()
+    {
+        this.closeBurgerMenu();
+        this.saveGame();
+    }
+
+    this.burgerName = function()
+    {
+        this.closeBurgerMenu();
+        this.currentPlayer.setName("");
+        this.syncPlayerToNameInput();
+        this.animationRepaint = false;
+        this.setCurrentStep(kaper.stepType.INTRO_ENTER_NAME);
+        this.repaint();
+    }
+
+    this.burgerLanguage = function()
+    {
+        this.closeBurgerMenu();
+        this.returnToGameAfterLanguageSelect = true;
+        this.animationRepaint = false;
+        this.setCurrentStep(kaper.stepType.INTRO_WELCOME);
+        this.repaint();
     }
 
     /**
@@ -295,12 +845,18 @@ function kaper()
         this.osimg.style.display = "block";
         this.osimg.style.width = "min(100vw, calc(100dvh * 1.6))";
         this.osimg.style.height = "auto";
+        this.osimg.style.imageRendering = "pixelated";
+        this.osimg.style.msInterpolationMode = "nearest-neighbor";
         this.osimg.style.touchAction = "manipulation";
 
 //        this.maincontainer.appendChild(this.osimg);
         //document.getElementById("maincontainer").appendChild(this.osimg);
         document.getElementsByTagName("body")[0].appendChild(this.osimg);
         this.osgrp = this.osimg.getContext("2d"); // osimg.getGraphics();
+        this.osgrp.imageSmoothingEnabled = false;
+        this.osgrp.webkitImageSmoothingEnabled = false;
+        this.osgrp.mozImageSmoothingEnabled = false;
+        this.osgrp.msImageSmoothingEnabled = false;
         //osgrp.setXORMode(new Color(0,0,168));
         this.createNameInput();
 
@@ -325,6 +881,26 @@ function kaper()
         this.gHarbor = new harbor(this);
         this.gCity = new city(this);
         this.gHelp = new help(this);
+
+        // Apply saved language; if found skip language selection screen
+        var savedLocale = this.loadLanguageSetting();
+        if (savedLocale)
+        {
+            this.font.setCurrentLocale(savedLocale);
+            this.currentStep = kaper.stepType.TITLE_SCREEN;
+        }
+
+        window.privateerApp = this;
+        this.updateBurgerLabels();
+
+        // If a save game exists, load it and go straight to the map
+        if (this.loadSaveGame())
+        {
+            this.setCurrentStep(kaper.stepType.GAME_PLAYING);
+            this.setCurrentAction(kaper.actionType.MAP);
+        }
+
+        this.updateBurgerVisibility();
 
     }
     
@@ -446,7 +1022,6 @@ function kaper()
                 
                 this.osgrp.drawImage(this.font.getResource("EndGame4", this.currentPlayer.getMen()), 0, 144 + moreLines);
                 this.osgrp.drawImage(this.font.getResource("EndGame5", this.currentPlayer.getReparation()), 0, 160 + moreLines);
-                this.osgrp.drawImage(this.font.getResource("Continue"), 0, 176 + moreLines);
                 break;
                 
             case kaper.stepType.HIGHSCORE:
@@ -455,7 +1030,6 @@ function kaper()
                 this.osgrp.drawImage(this.font.getResource("HighScore1", this.currentPlayer.getScore()), 192, 160);
                 this.osgrp.drawImage(this.font.getResource("RecordLabel", this.highScore.score), 192, 192);
                 this.osgrp.drawImage(this.font.getResource("RecordHolderLabel", highScoreHolder), 192, 208);
-                this.osgrp.drawImage(this.font.getResource("HighScore2"), 0, 336);
                 break;
         }
         
@@ -623,6 +1197,7 @@ function kaper()
 
                 if (c == "Enter" && okaper.currentPlayer.getName().length > 0) // Return key - start game
                     {
+                        okaper.saveNameSetting(okaper.currentPlayer.getName());
                         okaper.setCurrentStep(kaper.stepType.GAME_PLAYING);
                         okaper.repaint();
                     }
@@ -680,25 +1255,11 @@ function kaper()
                     break;
                     
             case kaper.stepType.GAME_LOST:
-                    if (endScreenLocked)
-                    {
-                        break;
-                    }
-                    okaper.setCurrentStep(kaper.stepType.HIGHSCORE);
-                    okaper.repaint();
+                    // End-screen progression is pointer-only.
                     break;
                     
             case kaper.stepType.HIGHSCORE:
-                    if (endScreenLocked)
-                    {
-                        break;
-                    }
-                    // Last screen - start game anew
-                    okaper.currentPlayer.resetPlayer();
-                    okaper.gMap.resetMap();
-                    okaper.setCurrentAction(kaper.actionType.MAP);
-                    okaper.setCurrentStep(kaper.stepType.INTRO_WELCOME);
-                    okaper.repaint();
+                    // End-screen progression is pointer-only.
                     break;
             }
             
@@ -726,6 +1287,11 @@ function kaper()
             this.trySetHighScore(this.currentPlayer.getScore(), this.currentPlayer.getName());
         }
 
+        if (step == kaper.stepType.GAME_LOST)
+        {
+            this.deleteSaveGame();
+        }
+
         // Ignore accidental key presses for a short time when entering end-game screens.
         if (isEndScreen && !wasEndScreen)
         {
@@ -744,6 +1310,8 @@ function kaper()
         {
             this.blurNameInput();
         }
+
+        this.updateBurgerVisibility();
     }
     
     this.loadHighScore = function()
@@ -814,6 +1382,7 @@ function kaper()
     this.setCurrentAction = function(action)
     {
         this.currentAction = action;
+        this.updateBurgerVisibility();
     }
 
     /**

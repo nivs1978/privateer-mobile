@@ -36,6 +36,8 @@ function mist(k)
     this.applet = k;
     this.currentPlayer = k.getCurrentPlayer();
     this.font = k.getCGAFont();
+    this.choiceIconSpacing = 60;
+    this.choiceY = 208;
     
     this.currentMist = 0; // Which type of mist to show. No mist investigated yet
     thiscurrentAmount = 0; // Amount of what has been found. Nothing found yet
@@ -59,6 +61,7 @@ function mist(k)
             g.drawImage(this.font.getResource("Mist7", this.currentPlayer.getRankType1(), this.currentPlayer.getName()), 0, 112);
             g.drawImage(this.font.getResource("Mist8"), 0, 128);
             g.drawImage(this.font.getResource("Mist9"), 0, 160);
+            this.drawChoiceIcons(g, this.choiceY);
         }
         else // Investigating mist
         {
@@ -86,8 +89,6 @@ function mist(k)
                 g.drawImage(this.font.getResource("MistType" + this.currentMist + "6"), 0, 80);
                 moreLines += 48;
             }
-            
-            g.drawImage(this.font.getResource("Continue"), 0, 48 + moreLines);
         }
     }
 
@@ -96,22 +97,75 @@ function mist(k)
      */
     this.keyEvent = function(c)
     {
-        if (this.currentMist == 0) // User has not desided whether to investigate yet
-        {
-            // Encountering a mist is an event (which means experience)
-            this.currentPlayer.addToExperience();
+        // Mist input is pointer-only.
+    }
 
-            var yes = this.font.getResourceAsString("QuestionY").charAt(0);
-            var no = this.font.getResourceAsString("QuestionN").charAt(0);
-                            
-            if (c.toLowerCase() == yes) // Investigate mist
-                this.investigateMist();
-            else if (c.toLowerCase() == no) // Go back to map
-                this.applet.setCurrentAction(kaper.actionType.MAP);
-            else // Player has to choose either Yes or No
-                playsound("beep"); //Toolkit.getDefaultToolkit().beep();
+    this.getChoiceAreas = function(y)
+    {
+        var yesWidth = gfx_yes.width;
+        var noWidth = gfx_no.width;
+        var totalWidth = yesWidth + this.choiceIconSpacing + noWidth;
+        var startX = Math.floor((this.applet.osimg.width - totalWidth) / 2);
+
+        return {
+            yes: {
+                x: startX,
+                y: y,
+                width: yesWidth,
+                height: gfx_yes.height
+            },
+            no: {
+                x: startX + yesWidth + this.choiceIconSpacing,
+                y: y,
+                width: noWidth,
+                height: gfx_no.height
+            }
+        };
+    }
+
+    this.drawChoiceIcons = function(g, y)
+    {
+        var areas = this.getChoiceAreas(y);
+        g.drawImage(gfx_yes, areas.yes.x, areas.yes.y);
+        g.drawImage(gfx_no, areas.no.x, areas.no.y);
+    }
+
+    this.isPointInsideArea = function(point, area)
+    {
+        return point.x >= area.x &&
+               point.x <= area.x + area.width &&
+               point.y >= area.y &&
+               point.y <= area.y + area.height;
+    }
+
+    this.pointerEvent = function(point)
+    {
+        if (this.currentMist != 0)
+        {
+            this.advanceMistResult();
+            return true;
         }
-        else if (this.currentMist == 1) // Enemy ship appears - go to attack screen
+
+        var areas = this.getChoiceAreas(this.choiceY);
+
+        if (this.isPointInsideArea(point, areas.yes))
+        {
+            this.chooseMistOption(true);
+            return true;
+        }
+
+        if (this.isPointInsideArea(point, areas.no))
+        {
+            this.chooseMistOption(false);
+            return true;
+        }
+
+        return false;
+    }
+
+    this.advanceMistResult = function()
+    {
+        if (this.currentMist == 1) // Enemy ship appears - go to attack screen
         {
             this.currentMist = 0;
             this.currentAmount = 0;
@@ -124,6 +178,17 @@ function mist(k)
             this.applet.setCurrentAction(kaper.actionType.MAP);
             this.currentPlayer.checkPlayerStatus(); // Check if player has too many resources after mist
         }
+    }
+
+    this.chooseMistOption = function(yesSelected)
+    {
+        // Encountering a mist is an event (which means experience).
+        this.currentPlayer.addToExperience();
+
+        if (yesSelected)
+            this.investigateMist();
+        else
+            this.applet.setCurrentAction(kaper.actionType.MAP);
     }
     
     // ------------------- Methods in this game object not specified by interface -------------------
