@@ -673,7 +673,7 @@ function kaper()
             p.moves                       = d.moves || 0;
             p.difficulty                  = d.difficulty || 2;
             p.posX                        = d.posX || 10;
-            p.posY                        = d.posY || 13;
+            p.posY                        = d.posY || 10;
             p.money                       = d.money || 0;
             p.cannons                     = d.cannons || 0;
             p.men                         = d.men || 0;

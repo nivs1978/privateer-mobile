@@ -128,6 +128,7 @@
     <button id="burger-item-save"     onclick="if(window.privateerApp){window.privateerApp.burgerSave()}" disabled>Save</button>
     <button id="burger-item-name"     onclick="if(window.privateerApp){window.privateerApp.burgerName()}">Name</button>
     <button id="burger-item-language" onclick="if(window.privateerApp){window.privateerApp.burgerLanguage()}">Language</button>
+    <button id="burger-item-install"  onclick="if(window.privateerInstallApp){window.privateerInstallApp()}" style="display:none;">Install</button>
 </div>
 <script>
 // Close burger menu when clicking outside of it.
@@ -147,6 +148,41 @@ if ("serviceWorker" in navigator) {
         });
     });
 }
+
+// Capture install event and expose a user-gesture-driven install action.
+(function () {
+    var deferredInstallPrompt = null;
+    var installBtn = null;
+
+    function updateInstallButtonVisibility() {
+        if (!installBtn) installBtn = document.getElementById("burger-item-install");
+        if (!installBtn) return;
+        installBtn.style.display = deferredInstallPrompt ? "block" : "none";
+    }
+
+    window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        updateInstallButtonVisibility();
+    });
+
+    window.addEventListener("appinstalled", function () {
+        deferredInstallPrompt = null;
+        updateInstallButtonVisibility();
+    });
+
+    window.privateerInstallApp = function () {
+        if (!deferredInstallPrompt) return;
+
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.finally(function () {
+            deferredInstallPrompt = null;
+            updateInstallButtonVisibility();
+        });
+    };
+
+    updateInstallButtonVisibility();
+})();
 
 // Prevent left/right edge-swipe browser navigation on mobile.
 (function () {

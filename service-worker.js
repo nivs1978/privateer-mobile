@@ -1,8 +1,10 @@
-const CACHE_VERSION = "privateer-v1";
+const CACHE_VERSION = "privateer-v2";
 const APP_SHELL = [
   "./",
   "index.html",
   "manifest.webmanifest",
+  "pwa-192.png",
+  "pwa-512.png",
   "favicon.png",
   "favicon.ico",
   "qbasicplayer.js",
