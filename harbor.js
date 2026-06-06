@@ -169,13 +169,14 @@ function harbor(k) {
         if (this.playerShip.y == 0) // Start animation if not already started
             this.applet.animationRepaint = true;
 
-        if (this.playerMove == 0)
-        {
-            if (dx < 0)
-                this.playerMove = 1; // Player moves left
-            else
-                this.playerMove = 2; // Player moves right
-        }
+        var moveSteps = Math.max(1, Math.round(Math.abs(dx) / this.swipeMinDistance));
+        if (dx < 0)
+            this.playerMove -= moveSteps; // Player moves left
+        else
+            this.playerMove += moveSteps; // Player moves right
+
+        if (this.playerMove < -8) this.playerMove = -8;
+        if (this.playerMove > 8) this.playerMove = 8;
 
         return true;
     }
@@ -191,13 +192,14 @@ function harbor(k) {
         if (this.playerShip.y == 0) // Start animation if not already started
             this.applet.animationRepaint = true;
 
-        if (this.playerMove == 0)
-        {
-            if (dx < 0)
-                this.playerMove = 1; // Player moves left
-            else
-                this.playerMove = 2; // Player moves right
-        }
+        var moveSteps = Math.max(1, Math.round(Math.abs(dx) / threshold));
+        if (dx < 0)
+            this.playerMove -= moveSteps; // Player moves left
+        else
+            this.playerMove += moveSteps; // Player moves right
+
+        if (this.playerMove < -8) this.playerMove = -8;
+        if (this.playerMove > 8) this.playerMove = 8;
 
         return true;
     }
@@ -265,11 +267,9 @@ function harbor(k) {
             this.showWindArrows = false;
         }
 
-        // Move ship sideways if arrow left or right pressed
-        if (!this.showWindArrows && this.playerMove == 1 && this.playerShip.x >= 0)
-            this.playerShip.x -= swipeHorizontalStep;
-        else if (!this.showWindArrows && this.playerMove == 2 && this.playerShip.x <= 25)
-            this.playerShip.x += swipeHorizontalStep;
+        // Move ship sideways based on swipe distance (signed step count)
+        if (!this.showWindArrows && this.playerMove != 0)
+            this.playerShip.x += this.playerMove * swipeHorizontalStep;
 
         if (this.playerShip.x < 0) this.playerShip.x = 0;
         if (this.playerShip.x > 25) this.playerShip.x = 25;
