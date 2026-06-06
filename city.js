@@ -46,6 +46,7 @@ function city(k)
     this.currentAction; // What are the player doing right now
     this.tableStartY = 96;
     this.tableRowHeight = 44;
+        this.tableIconYOffset = -8;
     this.colLabelX = 0;
     this.colAdd10X = 114;
     this.colAdd1X = 153;
@@ -206,14 +207,14 @@ function city(k)
             g.drawImage(this.font.getResource(row.labelResource), this.colLabelX, y);
             if (row.canBuy)
             {
-                g.drawImage(this.iconAdd10, this.colAdd10X, y-8);
-                g.drawImage(this.iconAdd1, this.colAdd1X, y-8);
+                 g.drawImage(this.iconAdd10, this.colAdd10X, y + this.tableIconYOffset);
+                 g.drawImage(this.iconAdd1, this.colAdd1X, y + this.tableIconYOffset);
             }
             g.drawImage(this.font.getString(("" + amount).padStart(4, " ")), this.colValueX, y);
             if (row.canSell)
             {
-                g.drawImage(this.iconSub1, this.colSub1X, y-8);
-                g.drawImage(this.iconSub10, this.colSub10X, y-8);
+                 g.drawImage(this.iconSub1, this.colSub1X, y + this.tableIconYOffset);
+                 g.drawImage(this.iconSub10, this.colSub10X, y + this.tableIconYOffset);
             }
             g.drawImage(this.font.getString(this.getTablePriceText(row, price)), this.colPriceX, y);
         }
@@ -290,10 +291,11 @@ function city(k)
         {
             var row = this.rows[i];
             var y = this.tableStartY + (i * this.tableRowHeight);
-            var add10 = this.getIconArea(this.iconAdd10, this.colAdd10X, y);
-            var add1 = this.getIconArea(this.iconAdd1, this.colAdd1X, y);
-            var sub1 = this.getIconArea(this.iconSub1, this.colSub1X, y);
-            var sub10 = this.getIconArea(this.iconSub10, this.colSub10X, y);
+                var iconY = y + this.tableIconYOffset;
+                var add10 = this.getIconArea(this.iconAdd10, this.colAdd10X, iconY);
+                var add1 = this.getIconArea(this.iconAdd1, this.colAdd1X, iconY);
+                var sub1 = this.getIconArea(this.iconSub1, this.colSub1X, iconY);
+                var sub10 = this.getIconArea(this.iconSub10, this.colSub10X, iconY);
 
             if (row.canBuy)
             {
