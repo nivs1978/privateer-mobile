@@ -116,7 +116,10 @@ function player(k)
         {
             this.calculateNextPromotion();
             this.applet.setCurrentAction(kaper.actionType.PROMOTE);
+            return true;
         }
+
+        return false;
     }
     
     /**
@@ -150,7 +153,7 @@ function player(k)
      */
     this.collectPrizes = function()
     {
-        this.score += this.prizeMoney / 10;
+        this.score += Math.floor(this.prizeMoney / 10);
         this.men += this.prizeMen;
         this.money += this.prizeMoney;
         if (this.money > 30000) this.money = 30000;
@@ -226,13 +229,15 @@ function player(k)
     }
     this.addMove = function()
     {
+        // Match the original BASIC flow: promotion is granted before the move
+        // consumes turns/grain, and that promotion move does not count as a turn.
+        if (this.checkForPromotion())
+            return;
+
         this.moves += 1;
  
         // Grain is used when moving
         this.setGrain(this.grain - this.getMen() * (this.difficulty * 1.0 / 800.0));
-        
-        // As inoriginal game, promotion can only happen while moving ship
-        this.checkForPromotion();
     }
 
     /**

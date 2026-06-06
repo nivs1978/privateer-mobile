@@ -242,6 +242,10 @@ function harbor(k) {
      * (with help from run method in kaper class)
      */
     this.showSailingAnimation = function () {
+        var viewportWidth = this.applet.osimg.getBoundingClientRect().width;
+        var swipeHorizontalStep = Math.max(1, Math.round(640 / Math.max(1, viewportWidth)));
+        var windHorizontalStep = 1;
+
         // Move ship downwards
         this.playerShip.y += 1;
 
@@ -253,9 +257,9 @@ function harbor(k) {
             this.showWindArrows = true;
             
             if (this.currentWind == harbor.windType.LEFT)
-                this.playerShip.x += 1;
+                this.playerShip.x += windHorizontalStep;
             else
-                this.playerShip.x -= 1;
+                this.playerShip.x -= windHorizontalStep;
         }
         else {
             this.showWindArrows = false;
@@ -263,9 +267,12 @@ function harbor(k) {
 
         // Move ship sideways if arrow left or right pressed
         if (!this.showWindArrows && this.playerMove == 1 && this.playerShip.x >= 0)
-            this.playerShip.x -= 1;
+            this.playerShip.x -= swipeHorizontalStep;
         else if (!this.showWindArrows && this.playerMove == 2 && this.playerShip.x <= 25)
-            this.playerShip.x += 1;
+            this.playerShip.x += swipeHorizontalStep;
+
+        if (this.playerShip.x < 0) this.playerShip.x = 0;
+        if (this.playerShip.x > 25) this.playerShip.x = 25;
         this.playerMove = 0; // Reset player move
 
         // Check if player hit another harbor ship

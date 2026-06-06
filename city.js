@@ -45,16 +45,25 @@ function city(k)
     
     this.currentAction; // What are the player doing right now
     this.tableStartY = 96;
-    this.tableRowHeight = 24;
+    this.tableRowHeight = 44;
     this.colLabelX = 0;
-    this.colAdd10X = 128;
-    this.colAdd1X = 160;
-    this.colValueX = 176;
+    this.colAdd10X = 114;
+    this.colAdd1X = 153;
+    this.colValueX = 184;
     this.colSub1X = 256;
-    this.colSub10X = 288;
-    this.colPriceX = 320;
+    this.colSub10X = 296;
+    this.colPriceX = 336;
     this.buttonHitPadding = 4;
     this.buttonHitSize = 24;
+
+    this.iconAdd10 = new Image();
+    this.iconAdd10.src = "gfx/10up.png";
+    this.iconAdd1 = new Image();
+    this.iconAdd1.src = "gfx/up.png";
+    this.iconSub1 = new Image();
+    this.iconSub1.src = "gfx/down.png";
+    this.iconSub10 = new Image();
+    this.iconSub10.src = "gfx/10down.png";
 
     this.rows = [
         {
@@ -159,8 +168,8 @@ function city(k)
         g.drawImage(this.font.getResource("Map11", this.currentPlayer.getReparation()), 441, 368);
         
         // Show city menu
-        g.drawImage(this.font.getResource("City1", this.currentCity), 0, 32);
-        g.drawImage(this.font.getResource("City2", ""), 0, 64);
+        g.drawImage(this.font.getResource("City1", this.currentCity), 0, 24);
+        g.drawImage(this.font.getResource("City2", ""), 0, 40);
 
         this.drawTable(g);
         this.drawLeaveIcon(g);
@@ -187,11 +196,6 @@ function city(k)
 
     this.drawTable = function(g)
     {
-        var doubleUp = String.fromCharCode(139);
-        var up = String.fromCharCode(141);
-        var down = String.fromCharCode(142);
-        var doubleDown = String.fromCharCode(140);
-
         for (var i = 0; i < this.rows.length; i++)
         {
             var row = this.rows[i];
@@ -202,14 +206,14 @@ function city(k)
             g.drawImage(this.font.getResource(row.labelResource), this.colLabelX, y);
             if (row.canBuy)
             {
-                g.drawImage(this.font.getString(doubleUp), this.colAdd10X, y);
-                g.drawImage(this.font.getString(up), this.colAdd1X, y);
+                g.drawImage(this.iconAdd10, this.colAdd10X, y-8);
+                g.drawImage(this.iconAdd1, this.colAdd1X, y-8);
             }
             g.drawImage(this.font.getString(("" + amount).padStart(4, " ")), this.colValueX, y);
             if (row.canSell)
             {
-                g.drawImage(this.font.getString(down), this.colSub1X, y);
-                g.drawImage(this.font.getString(doubleDown), this.colSub10X, y);
+                g.drawImage(this.iconSub1, this.colSub1X, y-8);
+                g.drawImage(this.iconSub10, this.colSub10X, y-8);
             }
             g.drawImage(this.font.getString(this.getTablePriceText(row, price)), this.colPriceX, y);
         }
@@ -217,10 +221,10 @@ function city(k)
 
     this.getLeaveArea = function()
     {
-        var x = Math.floor((this.applet.osimg.width - gfx_leave.width) / 2);
+        var x = this.applet.osimg.width - 8 - gfx_leave.width;
         return {
             x: x,
-            y: 232,
+            y: 24,
             width: gfx_leave.width,
             height: gfx_leave.height
         };
@@ -250,6 +254,16 @@ function city(k)
         };
     }
 
+    this.getIconArea = function(icon, x, y)
+    {
+        return {
+            x: x,
+            y: y,
+            width: icon.width || this.buttonHitSize,
+            height: icon.height || this.buttonHitSize
+        };
+    }
+
     this.pointerEvent = function(point)
     {
         this.currentBuySellError = "";
@@ -276,10 +290,10 @@ function city(k)
         {
             var row = this.rows[i];
             var y = this.tableStartY + (i * this.tableRowHeight);
-            var add10 = this.getButtonArea(this.colAdd10X, y);
-            var add1 = this.getButtonArea(this.colAdd1X, y);
-            var sub1 = this.getButtonArea(this.colSub1X, y);
-            var sub10 = this.getButtonArea(this.colSub10X, y);
+            var add10 = this.getIconArea(this.iconAdd10, this.colAdd10X, y);
+            var add1 = this.getIconArea(this.iconAdd1, this.colAdd1X, y);
+            var sub1 = this.getIconArea(this.iconSub1, this.colSub1X, y);
+            var sub10 = this.getIconArea(this.iconSub10, this.colSub10X, y);
 
             if (row.canBuy)
             {

@@ -482,7 +482,7 @@ function kaper()
             okaper.currentPlayer.resetPlayer();
             okaper.gMap.resetMap();
             okaper.setCurrentAction(kaper.actionType.MAP);
-            okaper.setCurrentStep(kaper.stepType.INTRO_WELCOME);
+            okaper.setCurrentStep(kaper.stepType.TITLE_SCREEN);
             okaper.repaint();
             return;
         }
@@ -1028,8 +1028,10 @@ function kaper()
                 this.font.setCurrentMode(cgafont.modes.CGA_MODE2);
                 var highScoreHolder = this.highScore.name && this.highScore.name.length > 0 ? this.highScore.name : "Nelson himself!";
                 this.osgrp.drawImage(this.font.getResource("HighScore1", this.currentPlayer.getScore()), 192, 160);
-                this.osgrp.drawImage(this.font.getResource("RecordLabel", this.highScore.score), 192, 192);
-                this.osgrp.drawImage(this.font.getResource("RecordHolderLabel", highScoreHolder), 192, 208);
+                this.osgrp.drawImage(this.font.getResource("RecordLabel", this.highScore.score), 80, 192);
+                this.osgrp.drawImage(this.font.getResource("RecordHolderLabel", highScoreHolder), 184, 192);
+                this.osgrp.drawImage(this.font.getString(((""+(this.highScore.score || 256)).padStart(5, " "))), 64, 208);
+                this.osgrp.drawImage(this.font.getString(highScoreHolder), 184, 208);
                 break;
         }
         

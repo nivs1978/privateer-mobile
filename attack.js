@@ -168,10 +168,6 @@ function attack(k)
                 
                 if (this.currentPlayer.getDeathReason() != player.causeOfDeath.NOT_YET)
                     this.resetAttack(attack.type.LOST);
-                // Hack - needed to finish flag animation in boarding scene since game status has not been updated yet
-                //else if (currentEnemy.getCurrentState() != enemy.stateType.GOOD)
-                else if (this.currentEnemy.getMen() < 20)
-                    this.currentPlayer.addToScore(this.currentEnemy.getMoney() / 10);
 
                 break;
              
@@ -355,6 +351,7 @@ function attack(k)
 
         // Give player enemy resources.
         this.currentPlayer.setMoney(this.currentPlayer.getMoney() + this.currentEnemy.getMoney());
+        this.currentPlayer.addToScore(Math.floor(this.currentEnemy.getMoney() / 10));
         var grain = this.currentEnemy.getGrain();
         if (grain == 1) grain = 2;
         this.currentPlayer.setGrain(this.currentPlayer.getGrain() + grain);
