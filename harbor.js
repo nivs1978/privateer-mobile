@@ -50,6 +50,7 @@ function harbor(k) {
     this.playerMove = null;
     this.showWindArrows = null;
     this.swipeMinDistance = 24;
+    this.ignoreNextPointer = false;
 
     /**
      * Fake paint method called from Applet.paint
@@ -139,6 +140,12 @@ function harbor(k) {
 
     this.pointerEvent = function()
     {
+        if (this.ignoreNextPointer)
+        {
+            this.ignoreNextPointer = false;
+            return false;
+        }
+
         switch (this.currentAction)
         {
             case harbor.actionType.INTRO: // Tap to start the sailing action scene
@@ -217,6 +224,7 @@ function harbor(k) {
         this.playerShip = {"x":12,"y":0};
         this.playerMove = 0;
         this.showWindArrows = false;
+        this.ignoreNextPointer = false;
 
         // Calculate random wind
         //Random r = new Random();
@@ -288,6 +296,8 @@ function harbor(k) {
                 if (this.currentPlayer.getReparation() <= 20) // Maybe player died from hitting a harbor ship
                 {
                     this.currentAction = harbor.actionType.HARBOR_DEAD;
+                    this.ignoreNextPointer = true;
+                    this.applet.repaint();
                     return;
                 }
             }
@@ -302,14 +312,23 @@ function harbor(k) {
             if (this.playerShip.x <= this.harborHoleLocation || this.playerShip.x >= harborRightBorderStart) {
                 this.currentPlayer.setReparation(0); // Player always dies from hitting the harbor bottom border
                 this.currentAction = harbor.actionType.HARBOR_DEAD;
+                this.ignoreNextPointer = true;
+                this.applet.repaint();
                 return;
             }
 
             // Check if prizes to collect or just entering the city
             if (this.collectPrizes && this.currentPlayer.getPrizeMen() > 0)
+            {
                 this.currentAction = harbor.actionType.HARBOR_PRIZES;
+                this.ignoreNextPointer = true;
+                this.applet.repaint();
+            }
             else
+            {
                 this.applet.setCurrentAction(kaper.actionType.CITY);
+                this.applet.repaint();
+            }
         }
     }
 
